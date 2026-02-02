@@ -1,0 +1,236 @@
+# 🔐 Enforcing Least Privilege at Scale in AWS
+
+## 📌 Project Overview
+
+This project demonstrates how to design and implement **enterprise-grade least privilege access controls** in AWS using multiple security layers:
+
+* IAM Roles
+* Custom IAM Policies
+* Permission Boundaries
+* AWS Organizations Service Control Policies (SCPs)
+* Policy Testing & Validation
+
+The goal is to prevent over-privileged access, privilege escalation, and unauthorized changes to critical security services.
+
+---
+
+## 🎯 Objectives
+
+* Enforce least privilege across multiple users and services
+* Implement role-based access instead of long-term users
+* Prevent administrative abuse
+* Secure critical AWS security services
+* Understand AWS permission evaluation logic
+* Validate controls through real testing
+
+---
+
+## 🏗️ Architecture Overview
+
+This project uses a layered security model:
+
+1. **IAM Roles** – Define requested permissions
+2. **IAM Policies** – Grant minimum required access
+3. **Permission Boundaries** – Limit maximum possible privileges
+4. **SCPs** – Enforce organization-wide restrictions
+5. **CloudTrail & Simulator** – Monitor and validate access
+
+> Explicit Deny always overrides Allow.
+
+---
+
+## 🧰 Technologies & Services Used
+
+* AWS IAM
+* AWS Organizations
+* Service Control Policies (SCPs)
+* AWS STS
+* AWS KMS
+* AWS CloudTrail
+* IAM Policy Simulator
+
+---
+
+## 👥 Roles Implemented
+
+### 1. DevRole
+
+**Purpose:** Limited developer access
+
+Permissions:
+
+* Read/Write access to a specific S3 bucket
+* No access to other AWS services
+
+### 2. AuditRole
+
+**Purpose:** Security and compliance auditing
+
+Permissions:
+
+* Read-only access across all AWS services
+
+### 3. AdminRole
+
+**Purpose:** Administrative management
+
+Permissions:
+
+* AdministratorAccess policy
+* Restricted by permission boundary
+
+---
+
+## 📜 Custom IAM Policy Example (DevRole)
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DevS3Access",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::dev-app-bucket",
+        "arn:aws:s3:::dev-app-bucket/*"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 🔒 Permission Boundary
+
+Permission boundaries were used to restrict the maximum privileges of the AdminRole.
+
+### Boundary Policy Example
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyPrivilegeEscalation",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateUser",
+        "iam:CreateAccessKey",
+        "iam:AttachUserPolicy",
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:PutUserPolicy",
+        "iam:CreatePolicy",
+        "iam:UpdateAssumeRolePolicy"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+This prevents administrators from escalating their own privileges.
+
+---
+
+## 🏢 Service Control Policies (SCPs)
+
+SCPs were applied at the organization level to protect critical security services.
+
+### SCP Example
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyDisablingCloudTrail",
+      "Effect": "Deny",
+      "Action": [
+        "cloudtrail:StopLogging",
+        "cloudtrail:DeleteTrail"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyKMSKeyDeletion",
+      "Effect": "Deny",
+      "Action": [
+        "kms:ScheduleKeyDeletion",
+        "kms:DisableKey"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+These restrictions apply to all users and roles, including administrators.
+
+---
+
+## 🧪 Testing & Validation
+
+Multiple security tests were performed:
+
+| Test Case              | Expected Result | Outcome |
+| ---------------------- | --------------- | ------- |
+| Admin deletes KMS key  | Denied          | ✅       |
+| Admin stops CloudTrail | Denied          | ✅       |
+| Admin creates IAM user | Denied          | ✅       |
+| Dev accesses EC2       | Denied          | ✅       |
+| Auditor writes S3      | Denied          | ✅       |
+
+All tests were verified using the IAM Policy Simulator and CloudTrail logs.
+
+---
+
+## 📊 Monitoring & Auditing
+
+* CloudTrail enabled in all regions
+* Logs stored in encrypted S3
+* IAM Policy Simulator used for validation
+* AccessDenied events reviewed
+
+---
+
+## 🧠 Key Learnings
+
+* How AWS evaluates permissions across IAM, boundaries, and SCPs
+* Why defense-in-depth is critical in cloud security
+* How to prevent privilege escalation
+* How to design scalable identity governance
+* How to implement organization-wide guardrails
+
+---
+
+## 🚀 Future Improvements
+
+* Implement infrastructure using Terraform
+* Add automated compliance checks with AWS Config
+* Integrate GuardDuty findings
+* Add CI/CD security validation
+
+---
+
+## 📎 Author
+
+**Xavier Bosley**
+Aspiring Cloud Security & Cybersecurity Professional
+
+LinkedIn: (Add your link here)
+
+---
+
+## 📄 License
+
+This project is for educational and portfolio purposes.
+
+
